@@ -121,7 +121,7 @@
               throw new Error(data.message || "Login failed");
             }
             console.log("data", data);
-            buyerToken = data.token;
+            buyerToken = data.data.token;
             localStorage.setItem("buyerToken", buyerToken);
             console.log("Login successful. Token:", buyerToken);
             alert("Login successful!");
