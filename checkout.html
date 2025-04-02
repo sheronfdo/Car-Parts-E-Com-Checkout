@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PayHere Checkout</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f4f4f4;
+    }
+    .checkout-container {
+      text-align: center;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    input[type="email"], input[type="password"] {
+      display: block;
+      width: 100%;
+      padding: 8px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #payment-section {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="checkout-container">
+    <h2 id="title">Buyer Login</h2>
+    
+    <!-- Login Form -->
+    <div id="login-section">
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <button id="login-btn">Login</button>
+    </div>
+
+    <!-- Payment Section (shown after login) -->
+    <div id="payment-section">
+      <p>Welcome! Ready to checkout?</p>
+      <button id="pay-now">Pay with PayHere</button>
+    </div>
+  </div>
+
+  <!-- PayHere JavaScript SDK -->
+  <script type="text/javascript" src="https://www.payhere.lk/lib/payhere.js"></script>
+  <script>
+    let buyerToken = localStorage.getItem("buyerToken") || null;
+    const backendUrl = "https://car-parts-e-com-backend.vercel.app"; // Replace with your actual Vercel URL
+
+    if (buyerToken) {
+      showPaymentSection();
+    }
+
+    function showPaymentSection() {
+      document.getElementById("login-section").style.display = "none";
+      document.getElementById("payment-section").style.display = "block";
+      document.getElementById("title").textContent = "Checkout";
+    }
+
+    function showLoginSection() {
+      document.getElementById("login-section").style.display = "block";
+      document.getElementById("payment-section").style.display = "none";
+      document.getElementById("title").textContent = "Buyer Login";
+    }
+
+    // Login Handler
+    document.getElementById("login-btn").addEventListener("click", async () => {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      if (!email || !password) {
+        alert("Please enter email and password.");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${backendUrl}/api/auth/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await response.json();
+        if (!data.success) {
+          throw new Error(data.message || "Login failed");
+        }
+        buyerToken = data.token;
+        localStorage.setItem("buyerToken", buyerToken);
+        alert("Login successful!");
+        showPaymentSection();
+      } catch (err) {
+        console.error("Login Error:", err);
+        alert("Login failed: " + err.message);
+      }
+    });
+
+    // Fetch Payment Data
+    async function fetchPaymentData() {
+      try {
+        const response = await fetch(`${backendUrl}/api/buyer/order`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${buyerToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            items: [
+              { productId: "67e8ba833dc8d3b9b6c6660d", quantity: 1 },
+            ],
+          }),
+        });
+        const data = await response.json();
+        if (!data.success) {
+          throw new Error(data.message || "Failed to create order");
+        }
+        console.log("Payment Data:", data.data.payhereData);
+        return data.data.payhereData;
+      } catch (err) {
+        console.error("Fetch Error:", err);
+        throw err;
+      }
+    }
+
+    // PayHere Event Handlers
+    payhere.onCompleted = function onCompleted(orderId) {
+      console.log("Payment completed. OrderID: " + orderId);
+      alert(`Payment successful! Order ID: ${orderId}`);
+    };
+
+    payhere.onDismissed = function onDismissed() {
+      console.log("Payment dismissed");
+      alert("Payment was dismissed. Please try again.");
+    };
+
+    payhere.onError = function onError(error) {
+      console.log("Error: " + error);
+      alert(`Payment error: ${error}`);
+    };
+
+    // Pay Button Handler
+    document.getElementById("pay-now").addEventListener("click", async () => {
+      try {
+        const payment = await fetchPaymentData();
+        payment.sandbox = true;
+        console.log("Initiating PayHere Payment:", payment);
+        payhere.startPayment(payment);
+      } catch (err) {
+        alert("Failed to initiate payment: " + err.message);
+      }
+    });
+  </script>
+</body>
+</html>
