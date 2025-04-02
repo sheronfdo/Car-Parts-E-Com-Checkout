@@ -58,7 +58,7 @@
       <button id="login-btn">Login</button>
     </div>
 
-    <!-- Payment Section (shown after login) -->
+    <!-- Payment Section -->
     <div id="payment-section">
       <p>Welcome! Ready to checkout?</p>
       <button id="pay-now">Pay with PayHere</button>
@@ -69,7 +69,7 @@
   <script type="text/javascript" src="https://www.payhere.lk/lib/payhere.js"></script>
   <script>
     let buyerToken = localStorage.getItem("buyerToken") || null;
-    const backendUrl = "https://car-parts-e-com-backend.vercel.app"; // Replace with your actual Vercel URL
+    const backendUrl = "https://car-parts-e-com-backend.vercel.app"; // Your Vercel backend URL
 
     if (buyerToken) {
       showPaymentSection();
